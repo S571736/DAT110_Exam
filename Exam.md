@@ -395,10 +395,89 @@ Examples:
 * Link
 * Physical link
 
+2. For the following protocols which layer in the stack are they implemented in
+* **Domain Name System Protokollen (DNS)** runs in the application layer parallel to the program using it.
+* **Internet Control Message Protocol (ICMP)** runs in the network layer
+* **Ethernet IEEE 802.3** runs in the physical
+* **Dynamic Host Configuration Protocol (DHCP)** runs in application layer.
+
+3. Which levels in the TCP/IP protocol stack is implemented on a router?
+
+Network, Link and Physical. In a host, all five layers are implemented.
+4. What is multiplexing and demultiplexing? Give an example of how they are used in the TCP/IP stack?
+
+The job of delivering data in the transport-layer to the correct socket is called demultiplexing. The job of gathering 
+data chunks at the source host from different sockets, encapsulating each data chunk with header information(that later 
+will be used in demultiplexing) to create segments, and passing the segments to the network layer is called multiplexing
+
+5. What is the difference between a hub and a switch?
+
+A hub will only take an input and provide more than one output, or the other way, and it operates on the physical layer.
+A switch on the other hand can redirect the segments to the correct destinations based on header information. so it also
+operates on the link layer.
+
 ## Task 2 - Transport protocols
+Følgende figur viser formatet for de segmenter som utveksles i UDP protokollen.
 
+![UDP protocol something](res/UDP.png)
+
+
+1. Gjør kort rede for hvilken tjeneste UDP protokollen stiller til rådighet samt funksjonen av feltene: Source port, 
+Dest port, Length, Checksum og Application data (som angitt på figuren ovenfor).
+
+The UDP service provides a connectionless service to its applicatons. It's a no-frills service that provides no 
+reliability, no flow control, and no congestion control.
+
+**Source port Number**: to support request-reply communication patterns.
+
+**Destination port numbers**: for multiplexing/demultiplexing.
+
+**Length**: specifying total number of bytes(Header + Payload data) of the segments.
+
+**Checksum**: to protect against corruption if not supported b the link layer or router memory error.
+
+2. Anta i det følgende en konfigurasjon av Go-Back-N (GBN) protokollen med vindustørrelse på 3 og hvor de første tre 
+datapakker med sekvensnumrene 1, 2, og 3 avsendes. Hvordan vil protokollen reagere hvis alle tre datapakker går tapt?
+
+The sender would have to resend all packages. This would happen even though just one of the packages that was supposed 
+to be received doesn't arrive
+
+3. Hva vil skje hvis alle tre datapakker kommer frem og kun acknowledgement på datapakke 3 kommer tilbake?
+
+All the previous packages that has been sent, will be resent. That means packages 1-3
+
+4.	Foreslå et pakkeformat som kan brukes til å implementere GBN protokollen hvis sekvensnumre er 3-bits og data-delen kan være mellom 0 og 127 (27) bits.
+
+first bit can be used to define it the package is a data or ack, for a ack package can the 3 next bits be used for 
+sequence numbers. 
+
+for a data package, the three next bits can be used to assign sequence number. The next 7 bits can be used for setting 
+the length. The 0-127 bits are assign for each package due to the previous 7 bits.
 ## Task 3 - Network layer and routing
+a. Hvilket 32-bits bitmønster svarer IP adressen 232.192.40.7 til? Tabellen nedenfor med 2 potenser kan være nyttig.
 
+![Bit patterns](res/bitpattern.png)
+
+bit patterns are the amount of bits assigned for each "slot"
+
+bit pattern 11101010 11000000 00101000 00000111
+  
+b. Betrakt CIDR (Class Internet Domain Routing) adresseblokken 232.192.40.0/22. Hvilket intervall av adresser utgjør denne blokken?
+
+
+Makes up a forwarding table.
+Longest prefix matching is used to determine the entry to be used for forwarding (most specific entry is used)
+Between interface 1 and 2?
+
+c. Betrakt en router med følgende forwarding tabell:
+
+![Something about prefixed IP](res/prefix.png)
+
+På hvilket interface vil routeren videresende pakker med følgende destinasjon IP adresser (svarene skal begrunnes):
+
+* 232.192.57.14
+* 232.192.42.10
+* 20.53.40.7
 ## Task 4 - Link layer and addressing
 
 ## Task 5 - Project work
