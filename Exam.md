@@ -197,29 +197,214 @@ It then waits for reply/permission from every other process. If there are no oth
 will reply OK and enters the critical section and gains mutex lock. If another process is using the mutex area, it will 
 not reply until it's done. If there are two processes that wants to use the area at the same time they compare their 
 logical clocks and the one with the lowest value will get access first.
+##### Pros
+* Mutual exclusion is guaranteed without deadlock or starvation
+    * Everyone agrees on the ordering of the time stamps 
+    * Conflict? lower timestamp wins 
+* Requires 2.(N -1) messages before a process can enter its critical region 
+    * Linear time complexity 
+##### Cons
+* Has N points of failure(crashes)
+* Each process must maintain the group membership list 
+    * Including entering, leaving, and crashed processes
+* Works best with small groups of processes that never change group memberships 
+* All processes are involved in all decisions concerning accessing the shared resource
+    * burden on resource-constrained machines
+    * Any overloaded process can become a bottleneck
+##### Improvements:
+* When a request comes in, always sends a reply granting or denying permission.
+    * This helps detect dead processes
+* Use a majority vote(doesn’t need all processes to agree)
 #### 3. Discuss how centralized algorithm works in mutual exclusion algorithm
+The central idea is to elect one process as the coordinator.
+* A process that wants to access the shared resource sends a request to the coordinator asking for permission to a CS
 
+1. Process P1 asks the coordinator for permission to access a shared resource. Permission is granted.
+2. Process P2 then asks permission to access the same resource. The coordinator does not reply.
+3. When P1 releases the resource, it tells the coordinator, which then replies to P2.
+
+##### Pros
+* guarantees mutex by letting one process at a time into each critical region
+* It is fair as requests are granted in the order in which they are received. 
+* No process ever waits forever so no starvation.
+* Easy to implement so it requires only three messages per use of a critical region(Req, grant, release) => coordinator.
+* Used for more general resource allocation rather than just managing critical regions
+
+##### Cons
+* The coordinator is a single point of failure, so if it crashes, the entire system may go down.
+* If process normally blocks after making a request, they cannot distinguish a dead coordinator from "access denied" 
+since in both cases coordinator doesn't reply. 
+* In a large system, a single coordinator has to take care of all process(Causing bottlenecks)
+ 
 #### 4. Discuss how token-ring algorithm works in mutual exclusion algorithm
+Organize a distributed system as a logical ring. There is one token that'¨s passed along the ring. To enter the critical
+section one will need to have the token. If a process get the token and doesn't need it, it just passes it along.
 
+##### Pros
+* Only one process has the token at a given time
+    * Mutex is guaranteed
+    * No starvation
+##### Cons
+* Token lost
+    * Process holding it crashes
+    * Message containing token is lost
+    * Detecting lost token may be hard(unspotted token != lost token)
+    * Crashed nodes can break the ring
+* Neighbor crashes
+    * Solution: let neighbor acknowledge the receipt of token
+    * Every process must maintain the current ring configuration
+    
 #### 5. Explain briefly how bully election algorithm works
+When any process notices the coordinator is no longer responding to requests, it initiates an election. When a process 
+hold an election it sends an election message to all other processes with higher id. If no one responds the current 
+process wins the election. if one of the higher-ups answer, it takes up the job and the previous' job is done. This 
+means the higher-up holds a new election. This continues until the process that holds the election does not receive a 
+reply and thus becomes the coordinator. This makes the biggest guy in town always wins.
 
 ## Task 6
 #### 1. Explain how process resilience can be achieved in distributed system
-
+This can be done by having several identical processes in the same group. This way if one process crashes another can 
+take over.
 #### 2. Differentiate between flat process group and hierarchical process group and discuss their benefits and drawbacks
+**Hierarchical group**
+* +Decision making is simple
+* -Asymmetrical
+* -Single point of failure
+
+There's a coordinator which takes control, but if the coordinator the whole system may go down.
+
+**Flat group**
+* +Symmetrical
+* +No single point of failure
+* -Decision making is complicated(voting)
+* -delays and overhead
+
+All processes are treated equally, This means that there is no single point of failure. The main problem is that 
+decision making is complicated, which will induce delays.
 
 #### 3. Explain feedback implosion and how to use nonhierarchical feedback control to mitigate it
-
+A process will send out a NACK regarding some missing message. This NACK is sent out to all the group members, and if 
+some process also want sto send out a NACK regarding the same message, this NACK will not be sent. This way the sender 
+only receives one NACK
 #### 4. Discuss briefly the five classes of failures that can occur in RPC systems
-
+1. The client cannot locate the server, so no request can be sent.
+2. The client's request to the server is lost, so no response is returned by the server to the waiting client.
+3. The server crashes after receiving the request, and the service request is left acknowledged, but undone.
+4. The server's reply is lost in its way to the client, the service has completed, but the results never arrive at the 
+client.
+5. The client crashes after sending its request, and the server sends a reply to a newly restarted client that may not 
+be expecting it.
 ## Task 7
 Discuss the cryptography schemes that can be used to provide confidentiality, integrity, authentication, and non-repudiation.
+#### Symmetric key cryptography
+The same key is used to encrypt and decrypt a message. Symmetric cryptosystems are also referred to as secret-key and 
+shared-key systems, because the sender an receiver are required to share the same key, anbd to ensure that protection 
+works, this shared key must be kept secret, no one else is allowed to see the key.  
+
+Some popular symmetric key encryption systems include: 
+* DES - Data Encryption Standard
+* Blowfish
+* RC5
+* AES - Advanced Encryption Standard
+
+Issues with symmetric key cryptography. The main one is perhaps that the two parties must agree on the secret key in 
+advance. Is is also not very scalable since user need many pairs of unique key.
+How does one deliver a key to the other party securely? It does not provide non-repudiation.
+
+#### Public key Cryptography
+The sender and reciever do not share a secret key. They do however have public keys that are available to anyone. This 
+key can be used to encrypt a message and send it to its user. The user can then use its private key, to decrypt the 
+message. 
+
+This solves the issue of exchanging keys, as the public key is all that is needed to encrypt a message, but the same key
+can not be used to decrypt the message. 
+
+One can however derive a private key using the public key, but this is made very computationally difficult. Some schemes
+used to calculate private-public key pairs include:
+* Integer-Factorization schemes, difficult to factor large integers(RSA)
+* Discrete Logarithm Schemes
+* Elliptic curve Schemes
+
+#### Hash Function
+A hash function will reduce a message of arbitrary length into a fixed-length output. Hash functions are not means of 
+encryption, as they are one-way. They also do not have any keys.
+
+Some popular hash functions include:
+* MD4(128 bits)
+* MD5(128 bits)
+* MD6 (up to 512 bits)
+* SHA-1 (160 bits)
+* SHA-2(SHA-256 and SHA-512 b)
+* SHA-3
+* RIPEMD-160
+
+A hash function should ideally be fast. It must be collision resistant, meaning two different messages should not 
+produce equal hashes. It should be one-way, meaning one cannot derive the original message from the hash. You should 
+also not be able to modify a message without modifying the hash.
+
+#### SSL
+Secure sockets layer provides transport layer security to any TCP based application using SSL services.
+
+TLS(Transport Layer Security) is an updated and more secure version of SSL.
+
+In this protocol, when a user wants to make a secure connection to a server. It will send a TLS-hello request, meaning 
+that the user is asking the server to establish a secure connection. The server will respond with a public key. The user 
+will use this public key to encrypt a message containing a key that can be used for symmetric encryption. The server
+will decrypt this message using its private key, and store the key sent by the user. Both parties now have a identical 
+key that can be used for symmetrical encryption.
+
+In the TLS the server will also respond to the TLS-hello request with a TLS certificate. This certificate will confirm 
+the identity of the server. These certificates are distributed and verified by third parties
 
 ## Task 8
 Explain the following cloud service models
 #### 1. Infrastructure as a service
+This is where a vendor provides computing resources to the consumer. Examples of such services includes:
+* Amazon Elastic Compute(EC2)
+* Google Compute Engine
+* Azure VM
 
+This kind of service can provide the compute capabilities when you need them without any upfront investment. It can also
+quickly scale to your needs.
 #### 2. Platform as a service
+This is a cloud service that provides a platform that the consumer can use to build and deploy software.
+
+It is a model in which a third-party provider hosts application development platforms and tools on its own 
+infrastructure and makes them available to customers over the internet.
+
+Examples:
+* AWS Elastic Beanstalk
+* Google App engine
+* Heroku
 
 #### 3. Software as a service
+A software distribution model in which a third party provider hosts applications and makes them available to customers over the internet.
 
+Examples:
+* Google docs
+* Netsuit
+
+# Networking task
+
+## Task 1 - Layering and services
+1. In which five levels is the TCP/IP stack made out of
+
+* Application
+* Transport
+* Network
+* Link
+* Physical link
+
+## Task 2 - Transport protocols
+
+## Task 3 - Network layer and routing
+
+## Task 4 - Link layer and addressing
+
+## Task 5 - Project work
+
+## Task 6 - Packet-switched networks
+
+## Task 7 - Network layer and routing
+
+## Task 8 - Link Layer and local area networks
